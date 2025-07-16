@@ -1,0 +1,6 @@
+# .gitignore
+.env
+API Key.txt
+__pycache__/
+*.pyc
+*.log
