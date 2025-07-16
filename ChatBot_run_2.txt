@@ -1,0 +1,106 @@
+from flask import Flask, request
+from twilio.twiml.messaging_response import MessagingResponse
+from openai import OpenAI
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+app = Flask(__name__)
+# Initialize OpenAI client with API key
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# In-memory user sessions (for simplicity)
+user_sessions = {}
+
+@app.route("/")
+def home():
+    return "WhatsApp Bot is running! Send messages to the /whatsapp webhook."
+
+@app.route("/whatsapp", methods=["POST"])
+def whatsapp_bot():
+    incoming_msg = request.form.get("Body", "").strip()
+    sender_number = request.form.get("From", "")
+    response = MessagingResponse()
+
+    # Initialize session
+    session = user_sessions.get(sender_number, {"step": "start", "data": {}})
+
+    if session["step"] == "start":
+        if "preventivo" in incoming_msg.lower() or "quote" in incoming_msg.lower():
+            response.message("Perfetto! Per fornirti un preventivo, ho bisogno di alcune informazioni. Qual è il tuo *nome*?")
+            session["step"] = "ask_name"
+        else:
+            # Use GPT normally for general questions
+            try:
+                gpt_response = client.chat.completions.create(
+                    model="gpt-4o-mini",  # Updated to the valid model
+                    messages=[
+                        {"role": "system", "content": "You are the helpful AI assistant for Solar-Race S.r.l., a company that is located in Morbegno and installs solar panels in Lombardia. Answer questions clearly, provide solar-related help, guide users to request a quote or schedule a consultation with us on a specific date, and ensure the conversation is friendly and professional. Always comuncate in the language of the user, if you don't know the language, ask the user to specify it. If the user asks for a quote, ask for the name, surname, email and phone number. if the user lives within the province of Sondrio, schedule a face to face consultation for the next day, otherwise schedule an online, call or email consultation. "},
+                        {"role": "user", "content": incoming_msg}
+                    ],
+                    temperature=0.7,
+                    max_tokens=500
+                )
+                
+                # Check if response has content before stripping
+                if gpt_response.choices and gpt_response.choices[0].message.content:
+                    reply = gpt_response.choices[0].message.content.strip()
+                else:
+                    reply = "Mi dispiace, non sono riuscito a generare una risposta. Potresti riprovare?"
+                    
+            except Exception as e:
+                reply = "Mi dispiace, c'è stato un problema. Potresti riprovare?"
+                print(f"OpenAI API error: {e}")
+                
+            response.message(reply)
+            return str(response)
+
+    elif session["step"] == "ask_name":
+        session["data"]["nome"] = incoming_msg
+        response.message("Grazie! E il tuo *cognome*?")
+        session["step"] = "ask_surname"
+
+    elif session["step"] == "ask_surname":
+        session["data"]["cognome"] = incoming_msg
+        response.message("Perfetto. Qual è il tuo *indirizzo email*?")
+        session["step"] = "ask_email"
+
+    elif session["step"] == "ask_email":
+        session["data"]["email"] = incoming_msg
+        response.message("Ottimo. Infine, qual è il tuo *numero di telefono*?")
+        session["step"] = "ask_phone"
+
+    elif session["step"] == "ask_phone":
+        session["data"]["telefono"] = incoming_msg
+        response.message("Ultima domanda! Dove *abiti*? (Città o provincia)")
+        session["step"] = "ask_location"
+
+    elif session["step"] == "ask_location":
+        session["data"]["località"] = incoming_msg
+        location = incoming_msg.lower()
+        if "sondrio" in location:
+            appuntamento = "Un nostro tecnico ti contatterà per un sopralluogo domani."
+        else:
+            appuntamento = "Ti contatteremo per una consulenza online, telefonica o via email."
+
+        # ✅ Here we can store the quote
+        print("Nuova richiesta preventivo:", session["data"])
+
+        full_summary = (
+            f"✅ Preventivo richiesto da:\n"
+            f"Nome: {session['data']['nome']} {session['data']['cognome']}\n"
+            f"Email: {session['data']['email']}\n"
+            f"Telefono: {session['data']['telefono']}\n"
+            f"Località: {session['data']['località']}\n\n"
+            f"{appuntamento}"
+        )
+        response.message(full_summary)
+        session = {"step": "start", "data": {}}  # reset
+
+    # Update session
+    user_sessions[sender_number] = session
+    return str(response)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)

@@ -1,0 +1,56 @@
+from flask import Flask, request
+from twilio.twiml.messaging_response import MessagingResponse
+from openai import OpenAI
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+app = Flask(__name__)
+
+# Initialize OpenAI client with API key
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+@app.route("/")
+def home():
+    return "WhatsApp Bot is running! Send messages to the /whatsapp webhook."
+
+@app.route("/whatsapp", methods=["POST"])
+def whatsapp_bot():
+    incoming_msg = request.form.get("Body", "").strip()
+    sender_number = request.form.get("From", "")
+    print(f"Message from {sender_number}: {incoming_msg}")
+
+    # Setup GPT-4 message context
+    messages = [
+        {
+            "role": "system",
+            "content": "You are the helpful AI assistant for Solar-Race S.r.l., a company that is located in Morbegno and installs solar panels in Lombardia. Answer questions clearly, provide solar-related help, guide users to request a quote or schedule a consultation with us on a specific date, and ensure the conversation is friendly and professional. Always comuncate in the language of the user, if you don't know the language, ask the user to specify it. If the user asks for a quote, ask for the name, surname, email and phone number. if the user lives within the province of Sondrio, schedule a face to face consultation for the next day, otherwise schedule an online video meeting, phone call or email consultation."
+        },
+        {
+            "role": "user",
+            "content": incoming_msg
+        }
+    ]
+
+    try:
+        chat_response = client.chat.completions.create(
+            model="gpt-4",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=500
+        )
+
+        reply_text = chat_response.choices[0].message.content.strip()
+
+    except Exception as e:
+        print("Error with GPT:", e)
+        reply_text = "Mi dispiace, si è verificato un errore. Riprova più tardi."
+
+    # Respond via Twilio
+    twilio_response = MessagingResponse()
+    twilio_response.message(reply_text)
+    return str(twilio_response)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)

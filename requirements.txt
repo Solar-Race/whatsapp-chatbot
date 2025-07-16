@@ -1,0 +1,5 @@
+twilio
+flask
+openai
+python-dotenv
+datetime
