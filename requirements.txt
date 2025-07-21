@@ -4,3 +4,5 @@ openai
 python-dotenv
 datetime
 gunicorn
+gspread
+oauth2client

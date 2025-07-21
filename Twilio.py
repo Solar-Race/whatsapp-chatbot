@@ -5,6 +5,20 @@ import os
 import json
 from datetime import datetime
 from dotenv import load_dotenv
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+# Setup Google sheets auth
+scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+creds = ServiceAccountCredentials.from_json_keyfile_name('onyx-descent-466213-u6-c86fa92041cf.json', scope)
+client = gspread.authorize(creds)
+
+# Open the sheet
+sheet = client.open("WhatsApp Logs").worksheet("Messages")
+
+def log_message(name, phone, message):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    sheet.append_row([timestamp, name, phone, message])
 
 load_dotenv()
 
@@ -35,12 +49,15 @@ def whatsapp_bot():
     incoming_msg = request.form.get("Body", "").strip()
     sender_number = request.form.get("From", "").strip()
     print(f"Message from {sender_number}: {incoming_msg}")
+    name = "User"
 
     # 💬 This ensure chat_log is always assigned
     chat_history = history.setdefault(sender_number, [])
     chat_history.append({"role": "user", "content": incoming_msg})
 
     messages = [SYSTEM_MESSAGE] + chat_history
+
+    log_message(name, sender_number,incoming_msg)
 
     try:
         chat_response = client.chat.completions.create(
