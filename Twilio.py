@@ -6,6 +6,7 @@ import json
 from datetime import datetime
 from dotenv import load_dotenv
 import gspread
+from gspread.exceptions import WorksheetNotFound
 from oauth2client.service_account import ServiceAccountCredentials
 
 # Setup Google sheets auth
@@ -17,9 +18,12 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(google_creds_dict, scop
 client = gspread.authorize(creds)
 
 # Open the sheet
-sheet = client.open("WhatsApp Logs").worksheet("Messages")
-print([ws.title for ws in sheet.worksheets()])
 
+spreadsheet = client.open("WhatsApp Logs")
+try:
+    sheet = spreadsheet.worksheet("Messages")
+except WorksheetNotFound:
+    sheet =spreadsheet.add_worksheet(title="Messages", rows="100", cols="10")
 def log_message(name, phone, message):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     sheet.append_row([timestamp, name, phone, message])
