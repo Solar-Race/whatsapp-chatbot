@@ -1,7 +1,7 @@
 from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
 from openai import OpenAI
-import os
+import os, base64
 import json
 from datetime import datetime
 from dotenv import load_dotenv
