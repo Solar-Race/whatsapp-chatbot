@@ -18,6 +18,7 @@ client = gspread.authorize(creds)
 
 # Open the sheet
 sheet = client.open("WhatsApp Logs").worksheet("Messages")
+print([ws.title for ws in sheet.worksheets()])
 
 def log_message(name, phone, message):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
