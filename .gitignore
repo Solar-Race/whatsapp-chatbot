@@ -1,6 +1,7 @@
 # .gitignore
 .env
 API Key.txt
+google-creds.json
 __pycache__/
 *.pyc
 *.log
