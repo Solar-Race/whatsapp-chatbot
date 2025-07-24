@@ -63,16 +63,36 @@ def whatsapp_bot():
     print(f"Message from {sender_number}: {incoming_msg}")
     name = "User"
 
+    # Handle consent revocation
+    if incoming_msg == "stop":
+        user_consents.pop(sender_number, None)
+        reply_text = (
+            "✅ Hai revocato il consenso. I tuoi dati sono stati eliminati. Se vuoi continuare la conversazione in futuro, dovrai dare nuovamente il consenso."
+        )
+        # Optionally log to Google Sheets
+        sheet.append_row([datetime.now().strftime("%Y-%m-%d %H:%M:%S"), name, sender_number, "Consent Revoked"])
+        twilio_response = MessagingResponse()
+        twilio_response.message(reply_text)
+        return str(twilio_response)
+
 # Check for consent
     if sender_number not in user_consents:
-        if incoming_msg in ["yes", "I agree", "consent","ho d'acordo","si"]:
+        if incoming_msg in ["yes","Yes",  "I agree", "consent","ho d'acordo","si"]:
             user_consents[sender_number] = True
             reply_text = (
                 "✅ Grazie per il consenso! Ora possiamo iniziare. Come posso aiutarti oggi?")
         else:
             reply_text = (
-                "🔐 Prima di iniziare, per motivi di privacy, abbiamo bisogno del tuo consenso per raccogliere e conservare i tuoi dati (es. nome, numero). "
-                "Per favore rispondi con *'Yes'* per acconsentire."
+                "🔐 *Informativa Privacy (GDPR)*\n\n"
+                "Solar-Race raccoglie e conserva temporaneamente:\n"
+                "- Numero di telefono\n"
+                "- Messaggi inviati\n"
+                "- Data/Ora delle conversazioni\n\n"
+                "Questi dati sono usati solo per fornire supporto e richieste di preventivo. "
+                "Puoi revocare il consenso in qualsiasi momento inviando *STOP*.\n"
+                "Puoi anche richiedere l'esportazione o la cancellazione dei tuoi dati.\n\n"
+                "📄 Leggi la nostra informativa completa: https://www.solar-race.eu/privacy\n\n"
+                "👉 Rispondi con *YES* per acconsentire."
             )
         twilio_response = MessagingResponse()
         twilio_response.message(reply_text)
