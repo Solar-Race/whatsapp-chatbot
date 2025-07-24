@@ -32,6 +32,10 @@ load_dotenv()
 
 app = Flask(__name__)
 
+#In-memory store (for demo purposes only)
+user_consents = {}
+
+
 # Initialize OpenAI client with API key
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -59,6 +63,20 @@ def whatsapp_bot():
     print(f"Message from {sender_number}: {incoming_msg}")
     name = "User"
 
+# Check for consent
+    if sender_number not in user_consents:
+        if incoming_msg in ["yes", "I agree", "consent","ho d'acordo","si"]:
+            user_consents[sender_number] = True
+            reply_text = (
+                "✅ Grazie per il consenso! Ora possiamo iniziare. Come posso aiutarti oggi?")
+        else:
+            reply_text = (
+                "🔐 Prima di iniziare, per motivi di privacy, abbiamo bisogno del tuo consenso per raccogliere e conservare i tuoi dati (es. nome, numero). "
+                "Per favore rispondi con *'Yes'* per acconsentire."
+            )
+        twilio_response = MessagingResponse()
+        twilio_response.message(reply_text)
+        return str(twilio_response)
     # 💬 This ensure chat_log is always assigned
     chat_history = history.setdefault(sender_number, [])
     chat_history.append({"role": "user", "content": incoming_msg})
