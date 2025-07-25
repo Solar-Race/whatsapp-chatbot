@@ -4,6 +4,7 @@ from openai import OpenAI
 import os, base64, glob
 import json
 from datetime import datetime, timedelta
+import pytz
 from dotenv import load_dotenv
 import gspread
 from gspread.exceptions import WorksheetNotFound
@@ -25,7 +26,8 @@ try:
 except WorksheetNotFound:
     sheet =spreadsheet.add_worksheet(title="Messages", rows="100", cols="10")
 def log_message(name, phone, message):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    timezone = pytz.timezone("Europe/Rome")
+    timestamp = datetime.now(timezone).strftime("%Y-%m-%d %H:%M:%S")
     sheet.append_row([timestamp, name, phone, message])
 
 load_dotenv()
@@ -70,7 +72,8 @@ def whatsapp_bot():
             "✅ Hai revocato il consenso. I tuoi dati sono stati eliminati. Se vuoi continuare la conversazione in futuro, dovrai dare nuovamente il consenso."
         )
         # Optionally log to Google Sheets
-        sheet.append_row([datetime.now().strftime("%Y-%m-%d %H:%M:%S"), name, sender_number, "Consent Revoked"])
+        timezone = pytz.timezone("Europe/Rome")
+        sheet.append_row([datetime.now(timezone).strftime("%Y-%m-%d %H:%M:%S"), name, sender_number, "Consent Revoked"])
         twilio_response = MessagingResponse()
         twilio_response.message(reply_text)
         return str(twilio_response)
@@ -100,7 +103,8 @@ def whatsapp_bot():
 
     # 🗃️ Export chat history on demand
     if incoming_msg == "esporta":
-        history_file = f"chat_history_{datetime.now().date()}.json"
+        timezone = pytz.timezone("Europe/Rome")
+        history_file = f"chat_history_{datetime.now(timezone).date()}.json"
         if os.path.exists(history_file):
             with open(history_file, "r") as file:
                 chat_log = json.load(file)
@@ -158,7 +162,8 @@ def whatsapp_bot():
         "bot_reply": reply_text
     }
     try:
-        history_file = f"chat_history_{datetime.now().date()}.json"
+        timezone = pytz.timezone("Europe/Rome")
+        history_file = f"chat_history_{datetime.now(timezone).date()}.json"
         if os.path.exists(history_file):
             with open(history_file, "r") as file:
                 chat_log = json.load(file)
@@ -181,7 +186,8 @@ if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
 
 def cleanup_old_logs():
-    cutoff = datetime.now() - timedelta(days=30)
+    timezone = pytz.timezone("Europe/Rome")
+    cutoff = datetime.now(timezone) - timedelta(days=30)
     for file in glob.glob("chat_history_*.json"):
         file_date_str = file.replace("chat_history_", "").replace(".json", "")
         try:
