@@ -1,9 +1,9 @@
 from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
 from openai import OpenAI
-import os, base64
+import os, base64, glob
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import gspread
 from gspread.exceptions import WorksheetNotFound
@@ -97,6 +97,31 @@ def whatsapp_bot():
         twilio_response = MessagingResponse()
         twilio_response.message(reply_text)
         return str(twilio_response)
+
+    # 🗃️ Export chat history on demand
+    if incoming_msg == "esporta":
+        history_file = f"chat_history_{datetime.now().date()}.json"
+        if os.path.exists(history_file):
+            with open(history_file, "r") as file:
+                chat_log = json.load(file)
+            user_log = [log for log in chat_log if log["sender"] == sender_number]
+            export_text = json.dumps(user_log, indent=2) if user_log else "Nessun dato trovato."
+        else:
+            export_text = "Nessun dato disponibile."
+
+        twilio_response = MessagingResponse()
+        twilio_response.message(f"📄 Ecco i tuoi dati registrati:\n\n{export_text[:1500]}")  # Truncated to fit SMS
+        return str(twilio_response)
+
+    # 🧹 Delete all user data
+    if incoming_msg == "cancella":
+        history[sender_number] = []
+        user_consents.pop(sender_number, None)
+        reply_text = "🗑️ I tuoi dati sono stati cancellati. Se vuoi continuare, dovrai dare nuovamente il consenso."
+        twilio_response = MessagingResponse()
+        twilio_response.message(reply_text)
+        return str(twilio_response)
+
     # 💬 This ensure chat_log is always assigned
     chat_history = history.setdefault(sender_number, [])
     chat_history.append({"role": "user", "content": incoming_msg})
@@ -154,3 +179,16 @@ def whatsapp_bot():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
+def cleanup_old_logs():
+    cutoff = datetime.now() - timedelta(days=30)
+    for file in glob.glob("chat_history_*.json"):
+        file_date_str = file.replace("chat_history_", "").replace(".json", "")
+        try:
+            file_date = datetime.strptime(file_date_str, "%Y-%m-%d")
+            if file_date < cutoff:
+                os.remove(file)
+                print(f"🗑️ Deleted old log: {file}")
+        except ValueError:
+            print(f"⚠️ Skipped invalid file name: {file}")
+            continue
