@@ -95,7 +95,7 @@ def whatsapp_bot():
                 "Puoi revocare il consenso in qualsiasi momento inviando *STOP*.\n"
                 "Puoi anche richiedere l'esportazione o la cancellazione dei tuoi dati.\n\n"
                 "📄 Leggi la nostra informativa completa: https://www.solar-race.eu/privacy\n\n"
-                "👉 Rispondi con *YES* per acconsentire."
+                "👉 Rispondi con *yes* per acconsentire."
                 "------------------------------------------\n"
                 "ENGLISH\n"
                 "🔐 *Privacy Notice (GDPR)*\n\n"
@@ -158,6 +158,7 @@ def whatsapp_bot():
         if reply_text is None:
             reply_text = ""
         reply_text = reply_text.strip()
+        print (f" AI Response to {sender_number}: {reply_text}")
 
         # 💬 Add bot reply to chat history
         chat_history.append({"role": "assistant", "content": reply_text})
