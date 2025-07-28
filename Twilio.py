@@ -96,7 +96,19 @@ def whatsapp_bot():
                 "Puoi revocare il consenso in qualsiasi momento inviando *STOP*.\n"
                 "Puoi anche richiedere l'esportazione o la cancellazione dei tuoi dati.\n\n"
                 "📄 Leggi la nostra informativa completa: https://www.solar-race.eu/privacy\n\n"
-                "👉 Rispondi con *YES* per acconsentire."
+                "👉 Rispondi con *yes* per acconsentire."
+                "------------------------------------------"
+                "ENGLISH"
+                "🔐 *Privacy Notice (GDPR)*\n\n"
+                "Solar-Race temporarily collects and stores:\n"
+                "- Phone number\n"
+                "- Sent messages\n"
+                "- Date/Time of conversations\n\n"
+                "This data is used solely to provide support and respond to quote requests."
+                "You can revoke your consent at any time by sending *STOP*.\n"
+                "You can also request to export or delete your data.\n\n"
+                "📄 Read our full privacy policy: https://www.solar-race.eu/privacy\n\n"
+                "👉 Reply with *yes* to give your consent."
             )
         twilio_response = MessagingResponse()
         twilio_response.message(reply_text)
